@@ -1,30 +1,28 @@
-from rest_framework import viewsets, mixins, status
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from .models import Cart, CartItem, Order, OrderItem
 from .serializers import CartSerializer, CartItemSerializer, OrderSerializer
 
-class CartViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Cart.objects.all()
 
-    def get_object(self):
-        # Always return the current user's cart, creating one if necessary
-        cart, _ = Cart.objects.get_or_create(user=self.request.user)
-        return cart
-
-    def list(self, request):
-        # Map a standard GET request to return the single user cart
-        cart = self.get_object()
-        serializer = self.get_serializer(cart)
-        return Response(serializer.data)
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Cart.objects.none()
+        return Cart.objects.filter(user=self.request.user)
 
 class CartItemViewSet(viewsets.ModelViewSet):
     serializer_class = CartItemSerializer
     permission_classes = [IsAuthenticated]
+    queryset = CartItem.objects.all()
 
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return CartItem.objects.none()
         return CartItem.objects.filter(cart__user=self.request.user)
 
     def perform_create(self, serializer):
@@ -34,8 +32,11 @@ class CartItemViewSet(viewsets.ModelViewSet):
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
+    queryset = Order.objects.all()
 
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Order.objects.none()
         return Order.objects.filter(user=self.request.user)
 
     @transaction.atomic
