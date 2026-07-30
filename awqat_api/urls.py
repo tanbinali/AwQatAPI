@@ -10,6 +10,7 @@ from debug_toolbar.toolbar import debug_toolbar_urls
 
 # Import views from your apps
 from games.views import CategoryViewSet, GameViewSet, ReviewViewSet
+from orders.views import CartViewSet, CartItemViewSet, OrderViewSet
 
 # Schema view configuration for Swagger and Redoc API documentation
 schema_view = get_schema_view(
@@ -28,6 +29,9 @@ router = routers.DefaultRouter()
 router.register(r'categories', CategoryViewSet, basename='categories')
 router.register(r'games', GameViewSet, basename='games')
 router.register(r'reviews', ReviewViewSet, basename='reviews')
+router.register(r'cart', CartViewSet, basename='cart')
+router.register(r'cart-items', CartItemViewSet, basename='cart-items')
+router.register(r'orders', OrderViewSet, basename='orders')
 
 # Nested routes for games under categories
 category_router = routers.NestedDefaultRouter(router, r'categories', lookup='category')
