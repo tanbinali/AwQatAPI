@@ -1,0 +1,48 @@
+[
+  {
+    "model": "games.category",
+    "pk": 1,
+    "fields": {
+      "name": "RPG",
+      "description": "Role-playing games with deep progression systems."
+    }
+  },
+  {
+    "model": "games.category",
+    "pk": 2,
+    "fields": {
+      "name": "Fighting",
+      "description": "Competitive multiplayer fighting games."
+    }
+  },
+  {
+    "model": "games.game",
+    "pk": 1,
+    "fields": {
+      "title": "Cyber Grid: System Override",
+      "description": "Tactical RPG set in a dystopian network.",
+      "category": 1,
+      "price": "49.99",
+      "discount": "0.00",
+      "platforms": "PC, Xbox Series X",
+      "active": true,
+      "created_at": "2026-07-30T12:00:00Z",
+      "updated_at": "2026-07-30T12:00:00Z"
+    }
+  },
+  {
+    "model": "games.game",
+    "pk": 2,
+    "fields": {
+      "title": "Hollow's Awakening",
+      "description": "Fast-paced anime fighting game.",
+      "category": 2,
+      "price": "59.99",
+      "discount": "10.00",
+      "platforms": "PS5, PC",
+      "active": true,
+      "created_at": "2026-07-30T12:00:00Z",
+      "updated_at": "2026-07-30T12:00:00Z"
+    }
+  }
+]
