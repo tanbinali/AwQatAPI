@@ -1,49 +1,69 @@
 from rest_framework import serializers
-from .models import Category, Game, Review, GameImage
+from .models import Category, Game, GameImage, Review
+
 
 class CategorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for Category model.
+
+    Fields:
+    - id: Unique identifier of the category.
+    - name: Name of the category.
+    - description: Description of the category.
+    - image: Optional image representing the category.
+    """
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description']
+        fields = ['id', 'name', 'description', 'image']
+
+
+class GameImageSerializer(serializers.ModelSerializer):
+    """
+    Serializer for GameImage model representing individual screenshots or gallery images.
+    """
+    class Meta:
+        model = GameImage
+        fields = ['id', 'image']
+
 
 class ReviewSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField(read_only=True)
-    
+    """
+    Serializer for Review model.
+    """
+    user = serializers.ReadOnlyField(source='user.username')
+
     class Meta:
         model = Review
-        # Changed 'comment' to 'text' to match your Review model
-        fields = ['id', 'user', 'rating', 'text', 'created_at']
-        read_only_fields = ['user', 'game']
+        fields = ['id', 'game', 'user', 'rating', 'text', 'created_at', 'updated_at']
+        read_only_fields = ['user', 'created_at', 'updated_at']
+
 
 class GameSerializer(serializers.ModelSerializer):
-    # Read-only nested category for GET requests
-    category = CategorySerializer(read_only=True)
-    
-    # Write-only ID field for POST/PUT requests
-    category_id = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(), 
-        source='category', 
-        write_only=True
-    )
-    
-    # Computed field from the view's annotate() function
-    average_rating = serializers.FloatField(read_only=True)
-    
-    # Custom field to retrieve image URLs
-    images = serializers.SerializerMethodField()
-    
+    """
+    Serializer for Game model.
+
+    Fields:
+    - id: Unique identifier of the game.
+    - title: Title of the game.
+    - description: Description of the game.
+    - category: Related category ID.
+    - price: Base price of the game.
+    - discount: Discount percentage or amount.
+    - platforms: Supported platforms (e.g., PC, PS5, Xbox Series X).
+    - video: Optional video trailer file.
+    - active: Boolean indicating if the game is active for purchase.
+    - images: List of associated product screenshots (read-only).
+    - rating: Float value from the model's `average_rating` method (read-only).
+    - created_at: Creation timestamp.
+    - updated_at: Last update timestamp.
+    """
+    rating = serializers.FloatField(source='average_rating', read_only=True)
+    images = GameImageSerializer(many=True, read_only=True)
+
     class Meta:
         model = Game
         fields = [
-            'id', 'title', 'description', 'category', 'category_id', 
-            'price', 'discount', 'platforms', 'video', 'images', 'active', 
-            'average_rating', 'created_at', 'updated_at'
+            'id', 'title', 'description', 'category', 'price', 'discount',
+            'platforms', 'video', 'images', 'active', 'rating',
+            'created_at', 'updated_at'
         ]
-
-    def get_images(self, obj):
-        request = self.context.get('request')
-        if not request:
-            return []
-            
-        images = obj.images.all()
-        return [request.build_absolute_uri(img.image.url) for img in images if img.image]

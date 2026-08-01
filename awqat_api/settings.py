@@ -79,7 +79,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'awqat_api.wsgi.application'
+WSGI_APPLICATION = 'awqat_api.wsgi.app'
 
 # Database
 # Defaults to SQLite. When deploying, add DB_ENGINE=django.db.backends.postgresql and your Supabase credentials to .env
@@ -129,9 +129,9 @@ if USE_CLOUDINARY:
     }
     
     cloudinary.config( 
-        cloud_name = config('CLOUDINARY_CLOUD_NAME'),
-        api_key = config('CLOUDINARY_API_KEY'),
-        api_secret = config('CLOUDINARY_API_SECRET'),
+        cloud_name = config('CLOUDINARY_CLOUD_NAME', default=''),
+        api_key = config('CLOUDINARY_API_KEY', default=''),
+        api_secret = config('CLOUDINARY_API_SECRET', default=''),
         secure=True
     )
 else:
@@ -143,24 +143,6 @@ else:
             "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
         },
     }
-
-# Django 4.2+ Storage configuration
-STORAGES = {
-    "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",
-    },
-}
-
-# Cloudinary Configuration
-cloudinary.config( 
-    cloud_name = config('CLOUDINARY_CLOUD_NAME', default=''),
-    api_key = config('CLOUDINARY_API_KEY', default=''),
-    api_secret = config('CLOUDINARY_API_SECRET', default=''),
-    secure=True
-)
 
 # REST Framework Configuration
 REST_FRAMEWORK = {
@@ -193,8 +175,8 @@ DJOSER = {
     'USER_CREATE_PASSWORD_RETYPE': True,
     'SERIALIZERS': {
         'user_create': 'users.serializers.UserCreateSerializer',
-        'user': 'users.serializers.CustomUserSerializer',
-        'current_user': 'users.serializers.CustomUserSerializer',
+        'user': 'users.serializers.UserSerializer',
+        'current_user': 'users.serializers.UserSerializer',
     },
 }
 
