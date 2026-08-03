@@ -3,3 +3,5 @@ db.sqlite3
 .venv/
 .vscode/
 .env
+userinfo.txt
+media/
