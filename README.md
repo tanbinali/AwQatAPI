@@ -4,10 +4,7 @@
 
 ## Team: Jade Codex
 
-* MD Tanbin Ali
-* Avik Deb Nath
-* Tanbeen Miraz
-* MD Sajid Hossain Galib
+* A project for the Web Development Course CSE 242.
 
 ## Features
 
