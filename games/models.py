@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from cloudinary.models import CloudinaryField
+from cloudinary_storage.storage import VideoMediaCloudinaryStorage
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -16,8 +17,14 @@ class Game(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='games')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    platforms = models.CharField(max_length=200, help_text="Example: PC, PS5, Xbox Series X")
-    video = models.FileField(upload_to='games/videos/', null=True, blank=True)
+    platforms = models.CharField(max_length=200, help_text="Example: PC, PS5, Xbox Series X")    
+    video = models.FileField(
+        upload_to='games/videos/', 
+        null=True, 
+        blank=True, 
+        storage=VideoMediaCloudinaryStorage()
+    )
+    
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -128,6 +128,14 @@ if USE_CLOUDINARY:
         },
     }
     
+    # Required by django-cloudinary-storage
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME', default=''),
+        'API_KEY': config('CLOUDINARY_API_KEY', default=''),
+        'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
+    }
+    
+    # Required if you use raw Cloudinary SDK methods directly in your views/models
     cloudinary.config( 
         cloud_name = config('CLOUDINARY_CLOUD_NAME', default=''),
         api_key = config('CLOUDINARY_API_KEY', default=''),

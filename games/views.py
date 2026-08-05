@@ -19,7 +19,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         )
     )
     serializer_class = CategorySerializer
-
+    parser_classes = (MultiPartParser, FormParser)
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'games']:
             permission_classes = [permissions.AllowAny]

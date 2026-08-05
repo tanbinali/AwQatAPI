@@ -12,6 +12,7 @@ class CategorySerializer(serializers.ModelSerializer):
     - description: Description of the category.
     - image: Optional image representing the category.
     """
+    image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = Category
         fields = ['id', 'name', 'description', 'image']
@@ -21,6 +22,7 @@ class GameImageSerializer(serializers.ModelSerializer):
     """
     Serializer for GameImage model representing individual screenshots or gallery images.
     """
+    image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = GameImage
         fields = ['id', 'game', 'image']
@@ -46,6 +48,12 @@ class MultipleImageField(serializers.ListField):
         }
     }
 
+    def get_value(self, dictionary):
+        if hasattr(dictionary, 'getlist'):
+            return dictionary.getlist(self.field_name)
+        
+        return dictionary.get(self.field_name, [])
+
 class GameSerializer(serializers.ModelSerializer):
     """
     Serializer for Game model.
@@ -53,7 +61,6 @@ class GameSerializer(serializers.ModelSerializer):
     rating = serializers.FloatField(source='average_rating', read_only=True)
     images = GameImageSerializer(many=True, read_only=True)
     
-    # Use the custom field instead of the standard ListField
     uploaded_images = MultipleImageField(
         child=serializers.ImageField(allow_empty_file=False, use_url=False),
         write_only=True,
@@ -70,21 +77,39 @@ class GameSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
+        
+        # Replace empty placeholders and 0-byte files with None
+        for key, value in list(validated_data.items()):
+            if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
+                validated_data[key] = None
+            elif hasattr(value, 'size') and value.size == 0:
+                validated_data[key] = None
+                
         game = Game.objects.create(**validated_data)
         
+        # Verify the file object is valid and has data before uploading
         for image in uploaded_images:
-            GameImage.objects.create(game=game, image=image)
-            
+            if image and hasattr(image, 'size') and image.size > 0:
+                GameImage.objects.create(game=game, image=image)
+                
         return game
 
     def update(self, instance, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
+        
+        # Replace empty placeholders and 0-byte files with None
+        for key, value in list(validated_data.items()):
+            if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
+                validated_data[key] = None
+            elif hasattr(value, 'size') and value.size == 0:
+                validated_data[key] = None
         
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         
         for image in uploaded_images:
-            GameImage.objects.create(game=instance, image=image)
-            
+            if image and hasattr(image, 'size') and image.size > 0:
+                GameImage.objects.create(game=instance, image=image)
+                
         return instance
