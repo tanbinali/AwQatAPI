@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Category, Game, GameImage, Review
-
+from drf_yasg import openapi
 
 class CategorySerializer(serializers.ModelSerializer):
     """
@@ -23,7 +23,7 @@ class GameImageSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = GameImage
-        fields = ['id', 'image']
+        fields = ['id', 'game', 'image']
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -37,33 +37,54 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ['id', 'game', 'user', 'rating', 'text', 'created_at', 'updated_at']
         read_only_fields = ['user', 'created_at', 'updated_at']
 
+class MultipleImageField(serializers.ListField):
+    swagger_schema_fields = {
+        "type": openapi.TYPE_ARRAY,
+        "items": {
+            "type": openapi.TYPE_STRING,
+            "format": openapi.FORMAT_BINARY,
+        }
+    }
 
 class GameSerializer(serializers.ModelSerializer):
     """
     Serializer for Game model.
-
-    Fields:
-    - id: Unique identifier of the game.
-    - title: Title of the game.
-    - description: Description of the game.
-    - category: Related category ID.
-    - price: Base price of the game.
-    - discount: Discount percentage or amount.
-    - platforms: Supported platforms (e.g., PC, PS5, Xbox Series X).
-    - video: Optional video trailer file.
-    - active: Boolean indicating if the game is active for purchase.
-    - images: List of associated product screenshots (read-only).
-    - rating: Float value from the model's `average_rating` method (read-only).
-    - created_at: Creation timestamp.
-    - updated_at: Last update timestamp.
     """
     rating = serializers.FloatField(source='average_rating', read_only=True)
     images = GameImageSerializer(many=True, read_only=True)
+    
+    # Use the custom field instead of the standard ListField
+    uploaded_images = MultipleImageField(
+        child=serializers.ImageField(allow_empty_file=False, use_url=False),
+        write_only=True,
+        required=False
+    )
 
     class Meta:
         model = Game
         fields = [
             'id', 'title', 'description', 'category', 'price', 'discount',
-            'platforms', 'video', 'images', 'active', 'rating',
+            'platforms', 'video', 'images', 'uploaded_images', 'active', 'rating',
             'created_at', 'updated_at'
         ]
+
+    def create(self, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        game = Game.objects.create(**validated_data)
+        
+        for image in uploaded_images:
+            GameImage.objects.create(game=game, image=image)
+            
+        return game
+
+    def update(self, instance, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images', [])
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        for image in uploaded_images:
+            GameImage.objects.create(game=instance, image=image)
+            
+        return instance

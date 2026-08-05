@@ -7,6 +7,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 from sslcommerz_lib import SSLCOMMERZ
 from orders.models import Order, OrderItem
 
@@ -15,6 +17,30 @@ def redirect_from_base(request):
     return redirect('/swagger/')
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Initiate SSLCommerz Payment",
+    operation_description="Creates a payment session with SSLCommerz and returns the gateway payment URL.",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        required=['amount', 'orderId'],
+        properties={
+            'amount': openapi.Schema(type=openapi.TYPE_NUMBER, description='Total amount in BDT', example=1000.00),
+            'orderId': openapi.Schema(type=openapi.TYPE_INTEGER, description='ID of the order to pay for', example=12),
+            'numItems': openapi.Schema(type=openapi.TYPE_INTEGER, description='Number of items in the order', example=1),
+        }
+    ),
+    responses={
+        200: openapi.Response(
+            description="Payment session created successfully",
+            examples={"application/json": {"payment_url": "https://sandbox.sslcommerz.com/gwprocess/v4/gw.php?Q=..."}}
+        ),
+        400: openapi.Response(
+            description="Payment initiation failed",
+            examples={"application/json": {"error": "Invalid store or parameters"}}
+        )
+    }
+)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def initiate_payment(request):
@@ -62,6 +88,20 @@ def initiate_payment(request):
     return Response({"error": response.get("failedreason", "Payment initiation failed")}, status=status.HTTP_400_BAD_REQUEST)
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Payment Success Callback",
+    operation_description="Callback URL hit by SSLCommerz upon successful payment. Updates order status and redirects the user.",
+    request_body=openapi.Schema(
+        type=openapi.TYPE_OBJECT,
+        properties={
+            'tran_id': openapi.Schema(type=openapi.TYPE_STRING, description='Transaction ID generated during initiation')
+        }
+    ),
+    responses={
+        302: "Redirects to the frontend success page."
+    }
+)
 @api_view(['POST'])
 def payment_success(request):
     tran_id = request.data.get("tran_id", "")
@@ -77,11 +117,27 @@ def payment_success(request):
     return HttpResponseRedirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/success/")
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Payment Cancel Callback",
+    operation_description="Callback URL hit by SSLCommerz when a payment is cancelled. Redirects the user.",
+    responses={
+        302: "Redirects to the frontend cancel page."
+    }
+)
 @api_view(['POST'])
 def payment_cancel(request):
     return HttpResponseRedirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/cancel/")
 
 
+@swagger_auto_schema(
+    method='post',
+    operation_summary="Payment Failure Callback",
+    operation_description="Callback URL hit by SSLCommerz when a payment fails. Redirects the user.",
+    responses={
+        302: "Redirects to the frontend failure page."
+    }
+)
 @api_view(['POST'])
 def payment_fail(request):
     return HttpResponseRedirect(f"{main_settings.FRONTEND_URL}/dashboard/payment/fail/")

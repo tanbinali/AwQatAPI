@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from users.models import User, Profile
-from games.models import Category, Game, Review
+from games.models import Category, Game, Review, GameImage
 from orders.models import Cart, CartItem, Order, OrderItem
 
 @admin.register(User)
@@ -24,6 +24,11 @@ class GameAdmin(admin.ModelAdmin):
     list_display = ('title', 'price', 'category', 'active')
     list_filter = ('category', 'active')
     search_fields = ('name',)
+
+@admin.register(GameImage)
+class GameImageAdmin(admin.ModelAdmin):
+    list_display = ['id', 'game', 'image']
+    list_filter = ['game']
 
 @admin.register(Cart)
 class CartAdmin(admin.ModelAdmin):

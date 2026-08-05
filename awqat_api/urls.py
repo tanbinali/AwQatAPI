@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from api.views import redirect_from_base, initiate_payment, payment_success, payment_cancel, payment_fail
 from users.views import UserViewSet, ProfileViewSet
-from games.views import CategoryViewSet, GameViewSet, ReviewViewSet
+from games.views import CategoryViewSet, GameViewSet, ReviewViewSet, GameImageViewSet
 from orders.views import CartViewSet, OrderViewSet, CartItemViewSet, OrderItemViewSet
 from django.contrib import admin
 from debug_toolbar.toolbar import debug_toolbar_urls
@@ -31,6 +31,7 @@ router = routers.DefaultRouter()
 router.register(r'users', UserViewSet, basename='users')
 router.register(r'categories', CategoryViewSet, basename='categories')
 router.register(r'games', GameViewSet, basename='games')
+router.register(r'game-images', GameImageViewSet, basename='gameimage')
 router.register(r'carts', CartViewSet, basename='carts')
 router.register(r'orders', OrderViewSet, basename='orders')
 router.register(r'reviews', ReviewViewSet, basename='reviews')

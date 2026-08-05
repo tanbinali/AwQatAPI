@@ -2,9 +2,10 @@ from rest_framework import viewsets, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_yasg.utils import swagger_auto_schema
-from .models import Category, Game, Review
-from .serializers import CategorySerializer, GameSerializer, ReviewSerializer
+from .models import Category, Game, Review, GameImage
+from .serializers import CategorySerializer, GameSerializer, ReviewSerializer, GameImageSerializer
 from api.permissions import IsAdminUser, IsOwnerOrAdmin
 from django.db.models import Avg, Prefetch
 
@@ -96,11 +97,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
 
 class GameViewSet(viewsets.ModelViewSet):
     serializer_class = GameSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['title', 'description']
     ordering_fields = ['price', 'average_rating', 'active', 'discount']
     ordering = ['-average_rating']
-
+    
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAuthenticated(), IsAdminUser()]
@@ -169,6 +171,89 @@ class GameViewSet(viewsets.ModelViewSet):
         if category_pk:
             qs = qs.filter(category_id=category_pk, active=True)
         return qs.order_by('-average_rating', 'id')
+
+class GameImageViewSet(viewsets.ModelViewSet):
+    queryset = GameImage.objects.all().order_by('-id')
+    serializer_class = GameImageSerializer
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated(), IsAdminUser()]
+        return [permissions.AllowAny()]
+
+    @swagger_auto_schema(
+        operation_summary="List all game images",
+        operation_description="Retrieve a list of all game images. This endpoint is public.",
+        responses={200: GameImageSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve a game image",
+        operation_description="Get the details of a specific game image by its ID. This endpoint is public.",
+        responses={
+            200: GameImageSerializer(),
+            404: "Not Found. The image does not exist."
+        }
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Upload a new game image",
+        operation_description="Upload a new image for a game. You must have admin privileges.",
+        responses={
+            201: GameImageSerializer(),
+            400: "Bad Request. Invalid data provided.",
+            401: "Unauthorized. Authentication required.",
+            403: "Forbidden. Admin privileges required."
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Update a game image",
+        operation_description="Replace an existing game image. You must have admin privileges.",
+        responses={
+            200: GameImageSerializer(),
+            400: "Bad Request. Invalid data provided.",
+            401: "Unauthorized. Authentication required.",
+            403: "Forbidden. Admin privileges required.",
+            404: "Not Found. The image does not exist."
+        }
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partially update a game image",
+        operation_description="Modify specific fields of an existing game image. You must have admin privileges.",
+        responses={
+            200: GameImageSerializer(),
+            400: "Bad Request. Invalid data provided.",
+            401: "Unauthorized. Authentication required.",
+            403: "Forbidden. Admin privileges required.",
+            404: "Not Found. The image does not exist."
+        }
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Delete a game image",
+        operation_description="Remove a game image from the database. You must have admin privileges.",
+        responses={
+            204: "No Content. Successfully deleted.",
+            401: "Unauthorized. Authentication required.",
+            403: "Forbidden. Admin privileges required.",
+            404: "Not Found. The image does not exist."
+        }
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer

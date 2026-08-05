@@ -47,10 +47,18 @@ class CartViewSet(viewsets.ModelViewSet):
         responses={
             200: CartSerializer(),
             201: CartSerializer(),
+            400: 'Cart already exists for this user (Admin only).'
         }
     )
     def create(self, request, *args, **kwargs):
         if is_user_admin(request):
+            target_user_id = request.data.get('user', request.user.id)
+            
+            if Cart.objects.filter(user_id=target_user_id).exists():
+                return Response(
+                    {"detail": "A cart already exists for this user."}, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return super().create(request, *args, **kwargs)
 
         user = request.user
