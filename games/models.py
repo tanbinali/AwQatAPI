@@ -1,10 +1,11 @@
 from django.db import models
 from django.conf import settings
+from cloudinary.models import CloudinaryField
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to='categories/images/', null=True, blank=True)
+    image = CloudinaryField('image', blank=True, null=True, resource_type='image', folder='categories/images/')
 
     def __str__(self):
         return self.name
@@ -32,7 +33,7 @@ class Game(models.Model):
 
 class GameImage(models.Model):
     game = models.ForeignKey(Game, related_name='images', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='games/images/')
+    image = CloudinaryField('image', blank=True, null=True, resource_type='image', folder='games/images/')
 
     def __str__(self):
         return f"{self.game.title} Image"
