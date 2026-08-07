@@ -24,7 +24,7 @@ class Game(models.Model):
     studio = models.ForeignKey(Studio, on_delete=models.SET_NULL, null=True, blank=True, related_name='games')
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    platforms = models.CharField(max_length=200, help_text="Example: PC, PS5, Xbox Series X")    
+    platforms = models.TextField(help_text="Example: PC, PS5, Xbox Series X")
     system_requirements = models.JSONField(
     default=dict,
     blank=True,
