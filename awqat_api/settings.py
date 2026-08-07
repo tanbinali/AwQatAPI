@@ -16,7 +16,12 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = [".vercel.app", "127.0.0.1", "localhost"]
+ALLOWED_HOSTS = [
+    ".vercel.app", 
+    "127.0.0.1", 
+    "localhost",
+    ".railway.app",
+]
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -79,7 +84,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'awqat_api.wsgi.app'
+WSGI_APPLICATION = 'awqat_api.wsgi.application'
 
 # Database
 # Defaults to SQLite. When deploying, add DB_ENGINE=django.db.backends.postgresql and your Supabase credentials to .env
@@ -135,7 +140,6 @@ if USE_CLOUDINARY:
         'API_SECRET': config('CLOUDINARY_API_SECRET', default=''),
     }
     
-    # Required if you use raw Cloudinary SDK methods directly in your views/models
     cloudinary.config( 
         cloud_name = config('CLOUDINARY_CLOUD_NAME', default=''),
         api_key = config('CLOUDINARY_API_KEY', default=''),

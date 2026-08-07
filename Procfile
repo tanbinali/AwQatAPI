@@ -1,0 +1,1 @@
+web: gunicorn awqat_api.wsgi:application --log-file -
