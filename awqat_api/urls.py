@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from api.views import redirect_from_base, initiate_payment, payment_success, payment_cancel, payment_fail
 from users.views import UserViewSet, ProfileViewSet
-from games.views import CategoryViewSet, GameViewSet, ReviewViewSet, GameImageViewSet
+from games.views import CategoryViewSet, StudioViewSet, GameViewSet, ReviewViewSet, GameImageViewSet
 from orders.views import CartViewSet, OrderViewSet, CartItemViewSet, OrderItemViewSet
 from django.contrib import admin
 from debug_toolbar.toolbar import debug_toolbar_urls
@@ -30,6 +30,7 @@ schema_view = get_schema_view(
 router = routers.DefaultRouter()
 router.register(r'users', UserViewSet, basename='users')
 router.register(r'categories', CategoryViewSet, basename='categories')
+router.register(r'studios', StudioViewSet, basename='studios')
 router.register(r'games', GameViewSet, basename='games')
 router.register(r'game-images', GameImageViewSet, basename='gameimage')
 router.register(r'carts', CartViewSet, basename='carts')
@@ -47,6 +48,10 @@ users_router.register(r'reviews', ReviewViewSet, basename='user-reviews')
 # Nested routes for category-related games
 category_router = routers.NestedDefaultRouter(router, r'categories', lookup='category')
 category_router.register(r'games', GameViewSet, basename='category-games')
+
+# Nested routes for studio-related games
+studio_router = routers.NestedDefaultRouter(router, r'studios', lookup='studio')
+studio_router.register(r'games', GameViewSet, basename='studio-games')
 
 # Nested routes for game-related reviews
 game_router = routers.NestedDefaultRouter(router, r'games', lookup='game')
@@ -80,6 +85,7 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/', include(users_router.urls)),
     path('api/', include(category_router.urls)),
+    path('api/', include(studio_router.urls)),
     path('api/', include(game_router.urls)),
     path('api/', include(cart_router.urls)),
     path('api/', include(order_router.urls)),

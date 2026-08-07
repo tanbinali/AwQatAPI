@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Game, GameImage, Review
+from .models import Category, Studio, Game, GameImage, Review
 from drf_yasg import openapi
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -16,6 +16,15 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name', 'description', 'image']
+
+
+class StudioSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Studio model.
+    """
+    class Meta:
+        model = Studio
+        fields = ['id', 'name']
 
 
 class GameImageSerializer(serializers.ModelSerializer):
@@ -70,15 +79,15 @@ class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
         fields = [
-            'id', 'title', 'description', 'category', 'price', 'discount',
-            'platforms', 'video', 'images', 'uploaded_images', 'active', 'rating',
-            'created_at', 'updated_at'
+            'id', 'title', 'description', 'category', 'studio', 'price', 'discount',
+            'platforms', 'system_requirements', 'video', 'images', 'uploaded_images', 
+            'active', 'rating', 'created_at', 'updated_at'
         ]
 
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
         
-        # Replace empty placeholders and 0-byte files with None
+        # Replace empty placeholders and 0-byte files with None for creation
         for key, value in list(validated_data.items()):
             if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
                 validated_data[key] = None
@@ -97,12 +106,17 @@ class GameSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
         
-        # Replace empty placeholders and 0-byte files with None
+        # Identify empty placeholders and 0-byte files
+        keys_to_remove = []
         for key, value in list(validated_data.items()):
             if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
-                validated_data[key] = None
+                keys_to_remove.append(key)
             elif hasattr(value, 'size') and value.size == 0:
-                validated_data[key] = None
+                keys_to_remove.append(key)
+        
+        # Remove them completely so existing files are not overwritten with null
+        for key in keys_to_remove:
+            validated_data.pop(key)
         
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

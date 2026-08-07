@@ -4,8 +4,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_yasg.utils import swagger_auto_schema
-from .models import Category, Game, Review, GameImage
-from .serializers import CategorySerializer, GameSerializer, ReviewSerializer, GameImageSerializer
+from .models import Category, Studio, Game, Review, GameImage
+from .serializers import CategorySerializer, StudioSerializer, GameSerializer, ReviewSerializer, GameImageSerializer
 from api.permissions import IsAdminUser, IsOwnerOrAdmin
 from django.db.models import Avg, Prefetch
 
@@ -20,6 +20,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     )
     serializer_class = CategorySerializer
     parser_classes = (MultiPartParser, FormParser)
+    
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'games']:
             permission_classes = [permissions.AllowAny]
@@ -95,6 +96,70 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+class StudioViewSet(viewsets.ModelViewSet):
+    queryset = Studio.objects.all().order_by('name')
+    serializer_class = StudioSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            permission_classes = [permissions.AllowAny]
+        else:
+            permission_classes = [IsAuthenticated, IsAdminUser]
+        return [permission() for permission in permission_classes]
+
+    @swagger_auto_schema(
+        operation_summary="List all studios",
+        operation_description="Retrieve a list of all game studios. Publicly accessible.",
+        responses={200: StudioSerializer(many=True)}
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Retrieve a specific studio by ID",
+        operation_description="Get detailed information about a specific studio.",
+        responses={200: StudioSerializer()}
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Create a new studio",
+        operation_description="Create a new studio. Requires admin authentication.",
+        request_body=StudioSerializer,
+        responses={201: StudioSerializer()}
+    )
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Update an existing studio (full update)",
+        operation_description="Update all fields of a studio. Requires admin authentication.",
+        request_body=StudioSerializer,
+        responses={200: StudioSerializer()}
+    )
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Partial update of a studio",
+        operation_description="Update one or more fields of a studio. Requires admin authentication.",
+        request_body=StudioSerializer,
+        responses={200: StudioSerializer()}
+    )
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="Delete a studio",
+        operation_description="Delete a studio by ID. Requires admin authentication.",
+        responses={204: 'No Content'}
+    )
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+
 class GameViewSet(viewsets.ModelViewSet):
     serializer_class = GameSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
@@ -165,7 +230,8 @@ class GameViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Game.objects.none()
         category_pk = self.kwargs.get('category_pk')
-        qs = Game.objects.select_related('category').annotate(
+        # Added 'studio' to select_related to optimize queries
+        qs = Game.objects.select_related('category', 'studio').annotate(
             average_rating=Avg('reviews__rating')
         )
         if category_pk:
