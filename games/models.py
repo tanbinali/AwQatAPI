@@ -4,7 +4,7 @@ from cloudinary.models import CloudinaryField
 from cloudinary_storage.storage import VideoMediaCloudinaryStorage
 
 class Category(models.Model):
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
     image = CloudinaryField('image', blank=True, null=True, resource_type='image', folder='categories/images/')
 
