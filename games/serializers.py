@@ -70,6 +70,8 @@ class GameSerializer(serializers.ModelSerializer):
     rating = serializers.FloatField(source='average_rating', read_only=True)
     images = GameImageSerializer(many=True, read_only=True)
     
+    studio_name = serializers.ReadOnlyField(source='studio.name')
+    
     uploaded_images = MultipleImageField(
         child=serializers.ImageField(allow_empty_file=False, use_url=False),
         write_only=True,
@@ -79,7 +81,7 @@ class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
         fields = [
-            'id', 'title', 'description', 'category', 'studio', 'price', 'discount',
+            'id', 'title', 'description', 'category', 'studio', 'studio_name', 'price', 'discount',
             'platforms', 'system_requirements', 'video', 'images', 'uploaded_images', 
             'active', 'rating', 'created_at', 'updated_at'
         ]
