@@ -43,6 +43,7 @@ class Game(models.Model):
     )
     video = models.FileField(
         upload_to='games/videos/', 
+        max_length=500,
         null=True, 
         blank=True, 
         storage=VideoMediaCloudinaryStorage()
