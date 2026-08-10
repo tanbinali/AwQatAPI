@@ -192,10 +192,19 @@ DJOSER = {
     },
 }
 
+# Tell Django it is securely behind an HTTPS proxy in production
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Allow your backend domain to pass CSRF checks (required for POST/PATCH in Swagger)
+CSRF_TRUSTED_ORIGINS = [
+    config('BACKEND_URL', default='http://127.0.0.1:8000'),
+]
+
 # CORS and Network Configuration
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     config('FRONTEND_URL', default='http://localhost:5173'),
+    config('BACKEND_URL', default='http://127.0.0.1:8000'),
 ]
 
 INTERNAL_IPS = ["127.0.0.1"]

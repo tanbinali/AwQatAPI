@@ -171,7 +171,7 @@ class GameViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAuthenticated(), IsAdminUser()]
-        elif self.action in ['list', 'retrieve']:
+        elif self.action in ['list', 'retrieve', 'discounted', 'upcoming']:
             return [permissions.AllowAny()]
         return [IsAuthenticated()]
 
@@ -226,17 +226,39 @@ class GameViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
+    @swagger_auto_schema(
+        operation_summary="List discounted games",
+        operation_description="Retrieve a list of active games currently on sale (discount > 0).",
+        responses={200: GameSerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'], url_path='discounted')
+    def discounted(self, request, *args, **kwargs):
+        queryset = self.get_queryset().filter(discount__gt=0, active=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @swagger_auto_schema(
+        operation_summary="List upcoming games",
+        operation_description="Retrieve a list of upcoming games (inactive games).",
+        responses={200: GameSerializer(many=True)}
+    )
+    @action(detail=False, methods=['get'], url_path='upcoming')
+    def upcoming(self, request, *args, **kwargs):
+        queryset = self.get_queryset().filter(active=False)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Game.objects.none()
         category_pk = self.kwargs.get('category_pk')
-        # Added 'studio' to select_related to optimize queries
         qs = Game.objects.select_related('category', 'studio').annotate(
             average_rating=Avg('reviews__rating')
         )
         if category_pk:
             qs = qs.filter(category_id=category_pk, active=True)
         return qs.order_by('-average_rating', 'id')
+
 
 class GameImageViewSet(viewsets.ModelViewSet):
     queryset = GameImage.objects.all().order_by('-id')
@@ -320,6 +342,7 @@ class GameImageViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
