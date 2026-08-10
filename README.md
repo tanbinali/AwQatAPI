@@ -30,8 +30,8 @@
 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/tanbinali/AwQat-API.git
-cd AwQat-API
+git clone https://github.com/tanbinali/AwQatAPI
+cd AwQatAPI
 
 ```
 
@@ -104,16 +104,20 @@ Interactive API documentation is built-in. Start the server and navigate to:
 
 ## Project Structure
 
-* `users/`: User models, authentication serializers, and profile logic.
-* `games/`: Game models, categories, and inventory management.
-* `orders/`: Shopping cart, checkout process, and order history.
-* `reviews/`: Game ratings and user feedback.
-* `api/`: Main routing, shared utilities, and global permissions.
+* `users/`: User models, authentication serializers, registration, login, and user management.
+* `categories/`: Game category models, category management, and category-related API endpoints.
+* `studios/`: Game studio models, studio management, and studio-related API endpoints.
+* `games/`: Game models, game details, pricing, inventory management, and game-related API endpoints.
+* `game-images/`: Game image management, image uploads, image associations, and image-related API endpoints.
+* `carts/`: Shopping cart models, cart item management, adding/removing games, and cart-related API endpoints.
+* `orders/`: Order models, checkout process, order creation, order status, order history, and order-related API endpoints.
+* `reviews/`: Game ratings, user reviews, feedback, review management, and review-related API endpoints.
+* `profile/`: User profile information, profile management, account details, and profile-related API endpoints.
+* `api/`: Main API routing, shared utilities, authentication handling, serializers, and global permissions.
 
 ## Future Improvements
 
 * Email notifications for successful orders and status updates.
-* Advanced search and filtering capabilities for the game catalog.
 * Admin analytics dashboard for sales tracking.
 * Webhook integrations for real-time payment status updates.
 
