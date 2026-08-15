@@ -84,7 +84,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'awqat_api.wsgi.application'
+WSGI_APPLICATION = 'awqat_api.wsgi.app'
 
 # Database
 # Defaults to SQLite. When deploying, add DB_ENGINE=django.db.backends.postgresql and your Supabase credentials to .env
@@ -181,7 +181,7 @@ DJOSER = {
     'EMAIL_FRONTEND_SITE_NAME': 'AwQat Gamestore', 
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'ACTIVATION_URL': 'activate/{uid}/{token}',
-    'SEND_ACTIVATION_EMAIL': False,
+    'SEND_ACTIVATION_EMAIL': True,
     'USER_ID_FIELD': 'id',
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': True,
