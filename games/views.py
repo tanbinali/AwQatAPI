@@ -7,8 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from .models import Category, Studio, Game, Review, GameImage
 from .serializers import CategorySerializer, StudioSerializer, GameSerializer, ReviewSerializer, GameImageSerializer
 from api.permissions import IsAdminUser, IsOwnerOrAdmin
-from django.db.models import Avg, Prefetch
-
+from django.db.models import Avg, Prefetch, F, ExpressionWrapper, DecimalField
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('id').prefetch_related(
@@ -90,7 +89,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def games(self, request, pk=None):
         category = self.get_object()
-        # Get only active games that were prefetched
         games = getattr(category, 'prefetched_games', [])
         serializer = GameSerializer(games, many=True)
         return Response(serializer.data)
@@ -165,8 +163,7 @@ class GameViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     
     search_fields = ['title', 'description', 'developer']
-    
-    ordering_fields = ['price']
+    ordering_fields = ['price', 'final_price']
     ordering = ['-average_rating']
     
     def get_permissions(self):
@@ -234,7 +231,14 @@ class GameViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['get'], url_path='discounted')
     def discounted(self, request, *args, **kwargs):
-        queryset = self.get_queryset().filter(discount__gt=0, active=True)
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(discount__gt=0, active=True)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -245,7 +249,14 @@ class GameViewSet(viewsets.ModelViewSet):
     )
     @action(detail=False, methods=['get'], url_path='upcoming')
     def upcoming(self, request, *args, **kwargs):
-        queryset = self.get_queryset().filter(active=False)
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = queryset.filter(active=False)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+            
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -254,8 +265,11 @@ class GameViewSet(viewsets.ModelViewSet):
             return Game.objects.none()
             
         category_pk = self.kwargs.get('category_pk')
+        discount_calculation = F('price') - (F('price') * F('discount') / 100.0)
+        
         qs = Game.objects.select_related('category', 'studio').annotate(
-            average_rating=Avg('reviews__rating')
+            average_rating=Avg('reviews__rating'),
+            final_price=ExpressionWrapper(discount_calculation, output_field=DecimalField(max_digits=10, decimal_places=2))
         )
         
         if category_pk:
@@ -266,13 +280,16 @@ class GameViewSet(viewsets.ModelViewSet):
         studio_id = self.request.query_params.get('studio')
         category_id = self.request.query_params.get('category')
 
-        if min_price:
-            qs = qs.filter(price__gte=min_price)
-        if max_price:
-            qs = qs.filter(price__lte=max_price)
-        if studio_id:
+        if min_price is not None and min_price != '':
+            qs = qs.filter(final_price__gte=min_price)
+            
+        if max_price is not None and max_price != '':
+            qs = qs.filter(final_price__lte=max_price)
+            
+        if studio_id and studio_id != 'All':
             qs = qs.filter(studio_id=studio_id)
-        if category_id:
+            
+        if category_id and category_id != 'All':
             qs = qs.filter(category_id=category_id)
 
         return qs.order_by('-average_rating', 'id')
