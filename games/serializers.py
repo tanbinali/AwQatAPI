@@ -15,9 +15,16 @@ class StudioSerializer(serializers.ModelSerializer):
 
 class GameImageSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(required=False, allow_null=True)
+    
     class Meta:
         model = GameImage
         fields = ['id', 'game', 'image']
+
+    def validate(self, attrs):
+        if not self.instance and attrs.get('game'):
+            if attrs['game'].images.count() >= 4:
+                raise serializers.ValidationError({"game": "Maximum 4 images allowed per game."})
+        return attrs
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
@@ -59,31 +66,48 @@ class GameSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
+        
+        valid_images = [img for img in uploaded_images if img and hasattr(img, 'size') and img.size > 0]
+        
+        if len(valid_images) > 4:
+            raise serializers.ValidationError({"uploaded_images": "Maximum 4 images allowed per game."})
+            
         for key, value in list(validated_data.items()):
             if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
                 validated_data[key] = None
             elif hasattr(value, 'size') and value.size == 0:
                 validated_data[key] = None
+                
         game = Game.objects.create(**validated_data)
-        for image in uploaded_images:
-            if image and hasattr(image, 'size') and image.size > 0:
-                GameImage.objects.create(game=game, image=image)
+        
+        for image in valid_images:
+            GameImage.objects.create(game=game, image=image)
+                
         return game
 
     def update(self, instance, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
+        
+        valid_images = [img for img in uploaded_images if img and hasattr(img, 'size') and img.size > 0]
+        
+        if instance.images.count() + len(valid_images) > 4:
+            raise serializers.ValidationError({"uploaded_images": "Maximum 4 images allowed per game."})
+            
         keys_to_remove = []
         for key, value in list(validated_data.items()):
             if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
                 keys_to_remove.append(key)
             elif hasattr(value, 'size') and value.size == 0:
                 keys_to_remove.append(key)
+        
         for key in keys_to_remove:
             validated_data.pop(key)
+        
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        for image in uploaded_images:
-            if image and hasattr(image, 'size') and image.size > 0:
-                GameImage.objects.create(game=instance, image=image)
+        
+        for image in valid_images:
+            GameImage.objects.create(game=instance, image=image)
+                
         return instance
