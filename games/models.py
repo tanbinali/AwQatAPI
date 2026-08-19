@@ -22,6 +22,7 @@ class Game(models.Model):
     description = models.TextField()
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='games')
     studio = models.ForeignKey(Studio, on_delete=models.SET_NULL, null=True, blank=True, related_name='games')
+    developer = models.CharField(max_length=255, blank=True, help_text="Example: Rockstar, Ubisoft, Mojang")
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     platforms = models.TextField(help_text="Example: PC, PS5, Xbox Series X")

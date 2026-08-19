@@ -159,13 +159,14 @@ class StudioViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
-
 class GameViewSet(viewsets.ModelViewSet):
     serializer_class = GameSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['title', 'description']
-    ordering_fields = ['price', 'average_rating', 'active', 'discount']
+    
+    search_fields = ['title', 'description', 'developer']
+    
+    ordering_fields = ['price']
     ordering = ['-average_rating']
     
     def get_permissions(self):
@@ -251,14 +252,30 @@ class GameViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Game.objects.none()
+            
         category_pk = self.kwargs.get('category_pk')
         qs = Game.objects.select_related('category', 'studio').annotate(
             average_rating=Avg('reviews__rating')
         )
+        
         if category_pk:
             qs = qs.filter(category_id=category_pk, active=True)
-        return qs.order_by('-average_rating', 'id')
+            
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+        studio_id = self.request.query_params.get('studio')
+        category_id = self.request.query_params.get('category')
 
+        if min_price:
+            qs = qs.filter(price__gte=min_price)
+        if max_price:
+            qs = qs.filter(price__lte=max_price)
+        if studio_id:
+            qs = qs.filter(studio_id=studio_id)
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+
+        return qs.order_by('-average_rating', 'id')
 
 class GameImageViewSet(viewsets.ModelViewSet):
     queryset = GameImage.objects.all().order_by('-id')

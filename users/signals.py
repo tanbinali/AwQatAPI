@@ -14,7 +14,7 @@ def add_user_to_customer_group(sender, instance, created, **kwargs):
     """
     Assigns new users to the 'Customer' group when they are activated.
     """
-    if not created and instance.is_active:
+    if instance.is_active:
         customer_group, _ = Group.objects.get_or_create(name="Customer")
         if not instance.groups.filter(name="Customer").exists():
             instance.groups.add(customer_group)
