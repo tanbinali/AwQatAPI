@@ -102,6 +102,10 @@ class StudioViewSet(viewsets.ModelViewSet):
     queryset = Studio.objects.all().order_by('name')
     serializer_class = StudioSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['name', 'id']
+    ordering = ['name']
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
