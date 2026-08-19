@@ -19,6 +19,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
     )
     serializer_class = CategorySerializer
     parser_classes = (MultiPartParser, FormParser)
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'description']
+    ordering_fields = ['name', 'id']
+    ordering = ['id']
     
     def get_permissions(self):
         if self.action in ['list', 'retrieve', 'games']:
