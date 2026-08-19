@@ -3,46 +3,31 @@ from .models import Category, Studio, Game, GameImage, Review
 from drf_yasg import openapi
 
 class CategorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for Category model.
-
-    Fields:
-    - id: Unique identifier of the category.
-    - name: Name of the category.
-    - description: Description of the category.
-    - image: Optional image representing the category.
-    """
     image = serializers.ImageField(required=False, allow_null=True)
     class Meta:
         model = Category
         fields = ['id', 'name', 'description', 'image']
 
-
 class StudioSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Studio model.
-    """
     class Meta:
         model = Studio
         fields = ['id', 'name']
 
-
 class GameImageSerializer(serializers.ModelSerializer):
-    """
-    Serializer for GameImage model representing individual screenshots or gallery images.
-    """
     image = serializers.ImageField(required=False, allow_null=True)
+    
     class Meta:
         model = GameImage
         fields = ['id', 'game', 'image']
 
+    def validate(self, attrs):
+        if not self.instance and attrs.get('game'):
+            if attrs['game'].images.count() >= 4:
+                raise serializers.ValidationError({"game": "Maximum 4 images allowed per game."})
+        return attrs
 
 class ReviewSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Review model.
-    """
     user = serializers.ReadOnlyField(source='user.username')
-
     class Meta:
         model = Review
         fields = ['id', 'game', 'user', 'rating', 'text', 'created_at', 'updated_at']
@@ -56,21 +41,14 @@ class MultipleImageField(serializers.ListField):
             "format": openapi.FORMAT_BINARY,
         }
     }
-
     def get_value(self, dictionary):
         if hasattr(dictionary, 'getlist'):
             return dictionary.getlist(self.field_name)
-        
         return dictionary.get(self.field_name, [])
 
 class GameSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Game model.
-    """
     rating = serializers.FloatField(source='average_rating', read_only=True)
     images = GameImageSerializer(many=True, read_only=True)
-    
-    studio_name = serializers.ReadOnlyField(source='studio.name')
     
     uploaded_images = MultipleImageField(
         child=serializers.ImageField(allow_empty_file=False, use_url=False),
@@ -81,7 +59,7 @@ class GameSerializer(serializers.ModelSerializer):
     class Meta:
         model = Game
         fields = [
-            'id', 'title', 'description', 'category', 'studio', 'studio_name', 'price', 'discount',
+            'id', 'title', 'description', 'category', 'studio', 'developer', 'price', 'discount',
             'platforms', 'system_requirements', 'video', 'images', 'uploaded_images', 
             'active', 'rating', 'created_at', 'updated_at'
         ]
@@ -89,7 +67,11 @@ class GameSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
         
-        # Replace empty placeholders and 0-byte files with None for creation
+        valid_images = [img for img in uploaded_images if img and hasattr(img, 'size') and img.size > 0]
+        
+        if len(valid_images) > 4:
+            raise serializers.ValidationError({"uploaded_images": "Maximum 4 images allowed per game."})
+            
         for key, value in list(validated_data.items()):
             if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
                 validated_data[key] = None
@@ -98,17 +80,19 @@ class GameSerializer(serializers.ModelSerializer):
                 
         game = Game.objects.create(**validated_data)
         
-        # Verify the file object is valid and has data before uploading
-        for image in uploaded_images:
-            if image and hasattr(image, 'size') and image.size > 0:
-                GameImage.objects.create(game=game, image=image)
+        for image in valid_images:
+            GameImage.objects.create(game=game, image=image)
                 
         return game
 
     def update(self, instance, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])
         
-        # Identify empty placeholders and 0-byte files
+        valid_images = [img for img in uploaded_images if img and hasattr(img, 'size') and img.size > 0]
+        
+        if instance.images.count() + len(valid_images) > 4:
+            raise serializers.ValidationError({"uploaded_images": "Maximum 4 images allowed per game."})
+            
         keys_to_remove = []
         for key, value in list(validated_data.items()):
             if isinstance(value, str) and value.strip().lower() in ['', 'null', 'undefined', 'none', '[]']:
@@ -116,7 +100,6 @@ class GameSerializer(serializers.ModelSerializer):
             elif hasattr(value, 'size') and value.size == 0:
                 keys_to_remove.append(key)
         
-        # Remove them completely so existing files are not overwritten with null
         for key in keys_to_remove:
             validated_data.pop(key)
         
@@ -124,8 +107,7 @@ class GameSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         
-        for image in uploaded_images:
-            if image and hasattr(image, 'size') and image.size > 0:
-                GameImage.objects.create(game=instance, image=image)
+        for image in valid_images:
+            GameImage.objects.create(game=instance, image=image)
                 
         return instance
