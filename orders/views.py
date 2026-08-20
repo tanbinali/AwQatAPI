@@ -51,21 +51,35 @@ class CartViewSet(viewsets.ModelViewSet):
         }
     )
     def create(self, request, *args, **kwargs):
-        if is_user_admin(request):
-            target_user_id = request.data.get('user', request.user.id)
-            
-            if Cart.objects.filter(user_id=target_user_id).exists():
-                return Response(
-                    {"detail": "A cart already exists for this user."}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            return super().create(request, *args, **kwargs)
+        cart_pk = self.kwargs.get('cart_pk')
+        try:
+            cart = Cart.objects.get(pk=cart_pk)
+        except Cart.DoesNotExist:
+            return Response({"detail": "Cart not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        user = request.user
-        cart, created = Cart.objects.get_or_create(user=user)
-        serializer = self.get_serializer(cart)
-        status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
-        return Response(serializer.data, status=status_code)
+        if not is_user_admin(request) and cart.user != request.user:
+            return Response({"detail": "Not allowed to modify this cart."}, status=status.HTTP_403_FORBIDDEN)
+
+        game_id = request.data.get('game')
+        quantity = int(request.data.get('quantity', 1))
+
+        if not game_id:
+            return Response({"game": ["This field is required."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, game_id=game_id, defaults={'quantity': 0})
+        
+        if created:
+            cart_item.quantity = quantity
+        else:
+            cart_item.quantity += quantity
+
+        if cart_item.quantity <= 0:
+            cart_item.delete()
+            return Response({"detail": "Item removed from cart."}, status=status.HTTP_204_NO_CONTENT)
+
+        cart_item.save()
+        serializer = self.get_serializer(cart_item)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
         operation_summary="Update a cart",

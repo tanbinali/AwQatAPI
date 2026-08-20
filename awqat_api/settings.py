@@ -209,6 +209,10 @@ CORS_ALLOWED_ORIGINS = [
 
 INTERNAL_IPS = ["127.0.0.1"]
 
+# URLs Configuration
+BACKEND_URL = config('BACKEND_URL', default='http://127.0.0.1:8000')
+FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+
 # Email Configuration
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
