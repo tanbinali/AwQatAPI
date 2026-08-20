@@ -41,7 +41,7 @@ class ProfileSerializer(serializers.ModelSerializer):
             history.append({
                 "order_id": order.id,
                 "order_status": order.status,
-                "total_price": order.total_price,
+                "total_price": order.total_amount,
                 "ordered_at": order.created_at,
                 "games": games_list,
             })
