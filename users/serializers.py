@@ -19,7 +19,6 @@ class ProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'username', 'email', 'order_history']
 
     def get_order_history(self, obj):
-        # Safely access the user's orders, defaulting to order_set if related_name isn't set
         orders = getattr(obj.user, 'order_set', None) or getattr(obj.user, 'orders', None)
         if orders is None:
             return []

@@ -3,14 +3,21 @@ from .models import Cart, CartItem, Order, OrderItem
 from django.contrib.auth import get_user_model
 from api.permissions import is_user_admin
 from django.db.models import Prefetch
+from games.serializers import GameSerializer
+from games.models import Game
 
 User = get_user_model()
 
 
 class CartItemSerializer(serializers.ModelSerializer):
+    game = GameSerializer(read_only=True)
+    game_id = serializers.PrimaryKeyRelatedField(
+        queryset=Game.objects.all(), source='game', write_only=True
+    )
+
     class Meta:
         model = CartItem
-        fields = ['id', 'cart', 'game', 'quantity']
+        fields = ['id', 'cart', 'game', 'game_id', 'quantity']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -44,9 +51,18 @@ class CartSerializer(serializers.ModelSerializer):
         if hasattr(items, 'all'):
             items = items.all()
         
-        # Calculate total based on game price. 
-        # Note: If you want discounts to apply in the cart, subtract item.game.discount here.
-        return round(sum(item.game.price * item.quantity for item in items), 2)
+        total = 0
+        for item in items:
+            base_price = float(item.game.price or 0)
+            discount_val = float(item.game.discount or 0)
+            final_unit_price = (
+                base_price - (base_price * discount_val / 100)
+                if discount_val > 0 and discount_val <= 100
+                else base_price - discount_val if discount_val > 0
+                else base_price
+            )
+            total += final_unit_price * item.quantity
+        return round(total, 2)
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
@@ -108,10 +124,14 @@ class OrderSerializer(serializers.ModelSerializer):
         
         total_amount = 0
         for item in cart_items:
-            # Calculate final price. If your discount is a flat amount, you can do: 
-            # final_price = item.game.price - (item.game.discount or 0)
-            # We default to game.price here to ensure type safety.
-            final_price = item.game.price 
+            base_price = float(item.game.price or 0)
+            discount_val = float(item.game.discount or 0)
+            final_price = (
+                base_price - (base_price * discount_val / 100)
+                if discount_val > 0 and discount_val <= 100
+                else base_price - discount_val if discount_val > 0
+                else base_price
+            )
             
             OrderItem.objects.create(
                 order=order,
