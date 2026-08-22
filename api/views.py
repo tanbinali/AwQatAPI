@@ -109,7 +109,7 @@ def payment_success(request):
         try:
             order_id = tran_id.split('_')[1]
             order = Order.objects.get(id=order_id)
-            order.status = "PAID"
+            order.status = "Processing"
             order.save()
         except (Order.DoesNotExist, IndexError, ValueError):
             pass

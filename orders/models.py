@@ -23,6 +23,7 @@ class CartItem(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = (
         ('Pending', 'Pending'),
+        ('Processing', 'Processing'),
         ('Completed', 'Completed'),
         ('Cancelled', 'Cancelled'),
     )
@@ -34,7 +35,7 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.id} by {self.user.username}"
-
+    
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, related_name='items', on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)

@@ -88,14 +88,11 @@ class OrderSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get('request')
         if request and hasattr(request, 'user'):
-            user = request.user
             if not is_user_admin(request):
                 self.fields['user'].read_only = True
-                self.fields['status'].read_only = True
             else:
                 self.fields['user'].queryset = User.objects.all()
                 self.fields['user'].read_only = False
-                self.fields['status'].read_only = False
 
     def create(self, validated_data):
         request = self.context['request']
@@ -151,6 +148,10 @@ class OrderSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         request = self.context['request']
         if not is_user_admin(request):
-            # Non-admins cannot update the status
-            validated_data.pop('status', None)
+            new_status = validated_data.get('status')
+            if new_status:
+                if new_status == 'Cancelled' and instance.status == 'Pending':
+                    pass 
+                else:
+                    validated_data.pop('status', None)
         return super().update(instance, validated_data)
