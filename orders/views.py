@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, filters
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from django.db.models import Prefetch
@@ -220,10 +220,13 @@ class CartItemViewSet(CacheUserAdminMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(cart__user=self.request.user)
         return queryset.order_by('id')
 
-
 class OrderViewSet(CacheUserAdminMixin, viewsets.ModelViewSet):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
+    
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['id', 'items__game__title']
+    ordering_fields = ['created_at', 'total_amount']
 
     @swagger_auto_schema(
         operation_summary="List orders",
@@ -284,25 +287,25 @@ class OrderViewSet(CacheUserAdminMixin, viewsets.ModelViewSet):
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Order.objects.none()
+            
         request = self.request
+        
         if is_user_admin(request):
-            return Order.objects.all().select_related('user').prefetch_related(
-                'user__groups',
-                Prefetch('items', queryset=OrderItem.objects.select_related('game').order_by('id'))
-            ).order_by('id')
-        return Order.objects.filter(user=request.user).select_related('user').prefetch_related(
+            qs = Order.objects.all()
+        else:
+            qs = Order.objects.filter(user=request.user)
+
+        status_param = request.query_params.get('status', None)
+        if status_param and status_param.lower() != 'all':
+            qs = qs.filter(status__iexact=status_param)
+
+        return qs.select_related('user').prefetch_related(
             'user__groups',
             Prefetch('items', queryset=OrderItem.objects.select_related('game').order_by('id'))
-        ).order_by('id')
+        ).distinct().order_by('-created_at')
 
     def perform_update(self, serializer):
-        if is_user_admin(self.request):
-            serializer.save()
-        else:
-            validated_data = dict(serializer.validated_data)
-            validated_data.pop('status', None)
-            serializer.save(**validated_data)
-
+        serializer.save()
 
 class OrderItemViewSet(CacheUserAdminMixin, viewsets.ModelViewSet):
     serializer_class = OrderItemSerializer

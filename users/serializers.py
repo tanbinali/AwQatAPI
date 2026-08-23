@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import Group
 from .models import User, Profile
+from api.permissions import is_user_admin
 
 class ProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
@@ -26,7 +27,6 @@ class ProfileSerializer(serializers.ModelSerializer):
         history = []
         for order in orders.all():
             games_list = []
-            # Match the related_name 'items' from your OrderViewSet update
             items = getattr(order, 'items', None) or getattr(order, 'order_items', None)
             
             if items is not None:
@@ -75,7 +75,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'profile', 'groups']
+        fields = ['id', 'email', 'username','is_active','profile', 'groups']
 
     def update(self, instance, validated_data):
         """
@@ -90,16 +90,20 @@ class UserSerializer(serializers.ModelSerializer):
         """
         request = self.context.get('request')
         groups = validated_data.pop('groups', None)
+        
+        is_staff_or_admin = request.user.is_staff or is_user_admin(request)
 
-        # Admin-only groups update
         if groups is not None:
-            if not request.user.is_staff:
+            if not is_staff_or_admin:
                 raise serializers.ValidationError({
                     "groups": "You do not have permission to change user groups."
                 })
             instance.groups.set(groups)
 
-        # Update remaining fields
+        if 'is_active' in validated_data:
+            if not is_staff_or_admin:
+                validated_data.pop('is_active')
+
         return super().update(instance, validated_data)
 
 

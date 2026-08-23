@@ -28,10 +28,26 @@ class GameImageSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = serializers.ReadOnlyField(source='user.username')
+    game_title = serializers.ReadOnlyField(source='game.title')
+    user_avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = Review
-        fields = ['id', 'game', 'user', 'rating', 'text', 'created_at', 'updated_at']
+        fields = [
+            'id', 'game', 'game_title', 'user', 'user_avatar', 
+            'rating', 'text', 'created_at', 'updated_at'
+        ]
         read_only_fields = ['user', 'created_at', 'updated_at']
+
+    def get_user_avatar(self, obj):
+        request = self.context.get('request')
+        profile = getattr(obj.user, 'profile', None)
+        
+        if profile and profile.avatar:
+            if request:
+                return request.build_absolute_uri(profile.avatar.url)
+            return profile.avatar.url
+        return None
 
 class MultipleImageField(serializers.ListField):
     swagger_schema_fields = {

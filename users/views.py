@@ -2,18 +2,48 @@ from rest_framework import viewsets, status, permissions, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
-from django.db.models import Prefetch
+from django.db.models import Prefetch, OuterRef, Subquery, Sum, Count, DecimalField, IntegerField
+from django.db.models.functions import Coalesce
 from drf_yasg.utils import swagger_auto_schema
 
 from .models import User, Profile
 from orders.models import Order, OrderItem
 from .serializers import UserSerializer, ProfileSerializer, UserCreateSerializer
-from api.permissions import IsAdminUser, IsOwnerOrAdmin
+from api.permissions import IsAdminUser, IsOwnerOrAdmin, is_user_admin
 
 
 class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all().select_related('profile').prefetch_related('groups').order_by('id')
     permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['username', 'email', 'profile__full_name']
+    ordering_fields = ['id', 'username', 'games_owned', 'total_spent']
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return User.objects.none()
+
+        total_spent_sq = Order.objects.filter(
+            user=OuterRef('pk')
+        ).values('user').annotate(
+            total=Sum('total_amount')
+        ).values('total')[:1]
+
+        games_owned_sq = OrderItem.objects.filter(
+            order__user=OuterRef('pk')
+        ).values('order__user').annotate(
+            total=Count('id')
+        ).values('total')[:1]
+
+        qs = User.objects.all().select_related('profile').prefetch_related('groups').annotate(
+            total_spent=Coalesce(Subquery(total_spent_sq), 0.0, output_field=DecimalField()),
+            games_owned=Coalesce(Subquery(games_owned_sq), 0, output_field=IntegerField())
+        ).order_by('-id')
+
+        role = self.request.query_params.get('role', None)
+        if role and role.lower() != 'all':
+            qs = qs.filter(groups__name__iexact=role)
+            
+        return qs
 
     def get_permissions(self):
         if getattr(self, 'swagger_fake_view', False):
@@ -78,7 +108,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         user = self.get_object()
 
-        if request.user.is_staff:
+        if request.user.is_staff or is_user_admin(request):
             self.perform_destroy(user)
             return Response({"detail": "User deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
 

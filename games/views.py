@@ -388,7 +388,9 @@ class GameImageViewSet(viewsets.ModelViewSet):
 
 class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
-    filter_backends = [filters.OrderingFilter]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    
+    search_fields = ['user__username', 'text', 'game__title']
     ordering_fields = ['rating', 'created_at']
 
     def get_permissions(self):
@@ -400,11 +402,21 @@ class ReviewViewSet(viewsets.ModelViewSet):
         if getattr(self, 'swagger_fake_view', False):
             return Review.objects.none()
         
-        queryset = Review.objects.all().order_by('-created_at')
-        game_pk = self.kwargs.get('game_pk')
+        queryset = Review.objects.select_related(
+            'user', 'user__profile', 'game'
+        ).order_by('-created_at')
         
+        game_pk = self.kwargs.get('game_pk')
         if game_pk:
             queryset = queryset.filter(game_id=game_pk)
+            
+        # Optional: Handle custom rating filter query parameter if sent from frontend
+        rating_param = self.request.query_params.get('rating', None)
+        if rating_param and rating_param.lower() != 'all':
+            try:
+                queryset = queryset.filter(rating=int(rating_param))
+            except ValueError:
+                pass
             
         return queryset
 
@@ -417,7 +429,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary="List reviews",
-        operation_description="Retrieve a list of reviews. If accessed via a specific game URL, it filters reviews for that game. Publicly accessible.",
+        operation_description="Retrieve a paginated list of reviews. Publicly accessible.",
         responses={200: ReviewSerializer(many=True)}
     )
     def list(self, request, *args, **kwargs):
@@ -433,7 +445,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary="Create a review",
-        operation_description="Submit a new review. If accessed via a specific game URL, the review links to that game automatically. Requires authentication.",
+        operation_description="Submit a new review. Requires authentication.",
         request_body=ReviewSerializer,
         responses={201: ReviewSerializer()}
     )
