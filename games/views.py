@@ -7,7 +7,7 @@ from drf_yasg.utils import swagger_auto_schema
 from .models import Category, Studio, Game, Review, GameImage
 from .serializers import CategorySerializer, StudioSerializer, GameSerializer, ReviewSerializer, GameImageSerializer
 from api.permissions import IsAdminUser, IsOwnerOrAdmin
-from django.db.models import Avg, Prefetch, F, ExpressionWrapper, DecimalField
+from django.db.models import Avg, Prefetch, F, ExpressionWrapper, DecimalField, Coalesce
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('id').prefetch_related(
@@ -273,13 +273,14 @@ class GameViewSet(viewsets.ModelViewSet):
             return Game.objects.none()
             
         category_pk = self.kwargs.get('category_pk')
-        discount_calculation = F('price') - (F('price') * F('discount') / 100.0)
+        
+        discount_calculation = F('price') - (F('price') * Coalesce(F('discount'), 0.0) / 100.0)
         
         qs = Game.objects.select_related('category', 'studio').annotate(
             average_rating=Avg('reviews__rating'),
             final_price=ExpressionWrapper(discount_calculation, output_field=DecimalField(max_digits=10, decimal_places=2))
         )
-        
+                
         if category_pk:
             qs = qs.filter(category_id=category_pk, active=True)
             
