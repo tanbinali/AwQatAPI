@@ -7,7 +7,8 @@ from drf_yasg.utils import swagger_auto_schema
 from .models import Category, Studio, Game, Review, GameImage
 from .serializers import CategorySerializer, StudioSerializer, GameSerializer, ReviewSerializer, GameImageSerializer
 from api.permissions import IsAdminUser, IsOwnerOrAdmin
-from django.db.models import Avg, Prefetch, F, ExpressionWrapper, DecimalField, Coalesce
+from django.db.models import Avg, Prefetch, F, ExpressionWrapper, DecimalField
+from django.db.models.functions import Coalesce
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all().order_by('id').prefetch_related(
