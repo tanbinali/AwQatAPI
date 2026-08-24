@@ -1,0 +1,8 @@
+System Access Requested
+
+You are receiving this transmission because you need to finish the activation process for your AwQat Gamestore profile.
+
+Initialize Account:
+{{ protocol }}://{{ domain }}/activate/{{ uid }}/{{ token }}
+
+© 2026 AwQat Gamestore. All rights reserved.

@@ -1,0 +1,69 @@
+{% block subject %}AwQat Gamestore - Activate Your Account{% endblock subject %}
+
+{% block text_body %}
+System Access Requested
+
+You are receiving this transmission because you need to finish the activation process for your AwQat Gamestore profile.
+
+Initialize Account:
+{{ protocol }}://{{ domain }}/activate/{{ uid }}/{{ token }}
+
+© 2026 AwQat Gamestore. All rights reserved.
+{% endblock text_body %}
+
+{% block html_body %}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Activate Your Account</title>
+</head>
+<body style="background-color: #121212; color: #ffffff; font-family: Arial, sans-serif; margin: 0; padding: 40px 0;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #121212;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #1c1c1c; border: 1px solid #2a2a2a; border-radius: 12px; margin: 20px 0; overflow: hidden;">
+                    
+                    <tr>
+                        <td align="center" style="padding: 40px 20px 20px 20px; border-bottom: 1px solid #2a2a2a;">
+                            <img src="https://raw.githubusercontent.com/AvikDN/AwQat-Gamestore/main/src/assets/Awqat_full.png" alt="AwQat Gamestore" width="180" style="display: block; outline: none; border: none;">
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 40px;">
+                            <h2 style="color: #ffffff; font-size: 24px; font-weight: bold; margin-top: 0; margin-bottom: 20px;">System Access Requested</h2>
+                            <p style="color: #a1a1aa; font-size: 16px; line-height: 1.5; margin-bottom: 30px;">
+                                You are receiving this transmission because you need to finish the activation process for your AwQat Gamestore profile.
+                            </p>
+                            
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="center">
+                                        <a href="{{ protocol }}://{{ domain }}/activate/{{ uid }}/{{ token }}" style="background-color: #2ecc71; color: #000000; text-decoration: none; padding: 14px 30px; border-radius: 8px; font-size: 16px; font-weight: bold; display: inline-block;">Initialize Account</a>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <p style="color: #a1a1aa; font-size: 14px; line-height: 1.5; margin-top: 40px; margin-bottom: 0;">
+                                If the button fails, copy and paste this direct link into your browser:
+                                <br><br>
+                                <a href="{{ protocol }}://{{ domain }}/activate/{{ uid }}/{{ token }}" style="color: #2ecc71; word-break: break-all;">{{ protocol }}://{{ domain }}/activate/{{ uid }}/{{ token }}</a>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" style="padding: 20px; background-color: #121212; border-top: 1px solid #2a2a2a;">
+                            <p style="color: #52525b; font-size: 12px; margin: 0;">
+                                &copy; 2026 AwQat Gamestore. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+{% endblock html_body %}
