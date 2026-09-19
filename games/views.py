@@ -19,7 +19,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         )
     )
     serializer_class = CategorySerializer
-    parser_classes = (MultiPartParser, FormParser)
+    parser_classes = (MultiPartParser, FormParser, JSONParser)
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'id']
@@ -102,7 +102,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class StudioViewSet(viewsets.ModelViewSet):
     queryset = Studio.objects.all().order_by('name')
     serializer_class = StudioSerializer
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name']
     ordering_fields = ['name', 'id']
@@ -166,9 +166,10 @@ class StudioViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
+
 class GameViewSet(viewsets.ModelViewSet):
     serializer_class = GameSerializer
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     
     search_fields = ['title', 'description', 'developer']
@@ -304,6 +305,7 @@ class GameViewSet(viewsets.ModelViewSet):
 
         return qs.order_by('-average_rating', 'id')
 
+
 class GameImageViewSet(viewsets.ModelViewSet):
     queryset = GameImage.objects.all().order_by('-id')
     serializer_class = GameImageSerializer
@@ -412,7 +414,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
         if game_pk:
             queryset = queryset.filter(game_id=game_pk)
             
-        # Optional: Handle custom rating filter query parameter if sent from frontend
         rating_param = self.request.query_params.get('rating', None)
         if rating_param and rating_param.lower() != 'all':
             try:

@@ -1,7 +1,6 @@
 from django.db import models
 from django.conf import settings
 from cloudinary.models import CloudinaryField
-from cloudinary_storage.storage import VideoMediaCloudinaryStorage
 
 class Category(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -27,28 +26,22 @@ class Game(models.Model):
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
     platforms = models.TextField(help_text="Example: PC, PS5, Xbox Series X")
     system_requirements = models.JSONField(
-    default=dict,
-    blank=True,
-    null=True,
-    help_text="""
-    Example:
-    {
-        "os": "Windows 11 64-bit",
-        "processor": "Intel Core i5-12400F",
-        "memory": "16 GB RAM",
-        "graphics": "NVIDIA RTX 3060",
-        "storage": "80 GB",
-        "directx": "Version 12"
-    }
-    """
+        default=dict,
+        blank=True,
+        null=True,
+        help_text="""
+        Example:
+        {
+            "os": "Windows 11 64-bit",
+            "processor": "Intel Core i5-12400F",
+            "memory": "16 GB RAM",
+            "graphics": "NVIDIA RTX 3060",
+            "storage": "80 GB",
+            "directx": "Version 12"
+        }
+        """
     )
-    video = models.FileField(
-        upload_to='games/videos/', 
-        max_length=500,
-        null=True, 
-        blank=True, 
-        storage=VideoMediaCloudinaryStorage()
-    )
+    video = models.URLField(max_length=500, null=True, blank=True, help_text="Paste YouTube, Vimeo, or direct video URL")
     active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

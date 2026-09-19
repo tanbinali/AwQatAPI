@@ -65,6 +65,7 @@ class MultipleImageField(serializers.ListField):
 class GameSerializer(serializers.ModelSerializer):
     rating = serializers.FloatField(source='average_rating', read_only=True)
     images = GameImageSerializer(many=True, read_only=True)
+    video = serializers.URLField(required=False, allow_null=True, allow_blank=True)
     
     uploaded_images = MultipleImageField(
         child=serializers.ImageField(allow_empty_file=False, use_url=False),
@@ -79,6 +80,7 @@ class GameSerializer(serializers.ModelSerializer):
             'platforms', 'system_requirements', 'video', 'images', 'uploaded_images', 
             'active', 'rating', 'created_at', 'updated_at'
         ]
+        read_only_fields = ['id', 'rating', 'created_at', 'updated_at', 'images']
 
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images', [])

@@ -116,7 +116,6 @@ class OrderSerializer(serializers.ModelSerializer):
         if not cart_items.exists():
             raise serializers.ValidationError({"cart": "No items in cart to place an order."})
 
-        # Create the Order placeholder
         order = Order.objects.create(user=order_user, total_amount=0)
         
         total_amount = 0
@@ -141,7 +140,6 @@ class OrderSerializer(serializers.ModelSerializer):
         order.total_amount = total_amount
         order.save()
 
-        # Clear the cart after successful order creation
         cart.delete()
         return order
 
