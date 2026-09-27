@@ -4,7 +4,14 @@ from django.conf import settings
 from django.conf.urls.static import static
 from api.views import redirect_from_base, initiate_payment, payment_success, payment_cancel, payment_fail
 from users.views import UserViewSet, ProfileViewSet
-from games.views import CategoryViewSet, StudioViewSet, GameViewSet, ReviewViewSet, GameImageViewSet
+from games.views import (
+    CategoryViewSet, 
+    StudioViewSet, 
+    GameViewSet, 
+    ReviewViewSet, 
+    GameImageViewSet,
+    WishlistViewSet
+)
 from orders.views import CartViewSet, OrderViewSet, CartItemViewSet, OrderItemViewSet
 from django.contrib import admin
 from debug_toolbar.toolbar import debug_toolbar_urls
@@ -33,6 +40,7 @@ router.register(r'categories', CategoryViewSet, basename='categories')
 router.register(r'studios', StudioViewSet, basename='studios')
 router.register(r'games', GameViewSet, basename='games')
 router.register(r'game-images', GameImageViewSet, basename='gameimage')
+router.register(r'wishlist', WishlistViewSet, basename='wishlist')
 router.register(r'carts', CartViewSet, basename='carts')
 router.register(r'orders', OrderViewSet, basename='orders')
 router.register(r'reviews', ReviewViewSet, basename='reviews')
@@ -77,7 +85,7 @@ urlpatterns = [
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 
-   # Authentication endpoints using Djoser (including JWT)
+    # Authentication endpoints using Djoser (including JWT)
     path('auth/', include('djoser.urls')),
     path('auth/', include('djoser.urls.jwt')),
     

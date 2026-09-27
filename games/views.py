@@ -1,11 +1,19 @@
-from rest_framework import viewsets, permissions, filters
+from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from drf_yasg.utils import swagger_auto_schema
-from .models import Category, Studio, Game, Review, GameImage
-from .serializers import CategorySerializer, StudioSerializer, GameSerializer, ReviewSerializer, GameImageSerializer
+from drf_yasg import openapi
+from .models import Category, Studio, Game, Review, GameImage, Wishlist
+from .serializers import (
+    CategorySerializer, 
+    StudioSerializer, 
+    GameSerializer, 
+    ReviewSerializer, 
+    GameImageSerializer,
+    WishlistSerializer
+)
 from api.permissions import IsAdminUser, IsOwnerOrAdmin
 from django.db.models import Avg, Prefetch, F, ExpressionWrapper, DecimalField
 from django.db.models.functions import Coalesce
@@ -480,3 +488,111 @@ class ReviewViewSet(viewsets.ModelViewSet):
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
+class WishlistViewSet(viewsets.ModelViewSet):
+    serializer_class = WishlistSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+
+    search_fields = [
+        'game__title',
+        'game__description',
+        'game__developer',
+    ]
+    ordering_fields = ['created_at', 'final_price', 'game__price', 'game__title']
+    ordering = ['-created_at']
+
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Wishlist.objects.none()
+
+        discount_calculation = F('game__price') - (
+            F('game__price') * Coalesce(F('game__discount'), 0.0) / 100.0
+        )
+
+        qs = (
+            Wishlist.objects.filter(user=self.request.user)
+            .select_related('game', 'game__category', 'game__studio')
+            .prefetch_related('game__images')
+            .annotate(
+                final_price=ExpressionWrapper(
+                    discount_calculation,
+                    output_field=DecimalField(max_digits=10, decimal_places=2),
+                )
+            )
+        )
+
+        min_price = self.request.query_params.get('min_price')
+        max_price = self.request.query_params.get('max_price')
+        studio_id = self.request.query_params.get('studio')
+        category_id = self.request.query_params.get('category')
+        availability = self.request.query_params.get('availability')
+
+        if min_price is not None and min_price != '':
+            qs = qs.filter(final_price__gte=min_price)
+
+        if max_price is not None and max_price != '':
+            qs = qs.filter(final_price__lte=max_price)
+
+        if studio_id and studio_id != 'All':
+            qs = qs.filter(game__studio_id=studio_id)
+
+        if category_id and category_id != 'All':
+            qs = qs.filter(game__category_id=category_id)
+
+        if availability == 'Available':
+            qs = qs.filter(game__active=True)
+        elif availability == 'Coming soon':
+            qs = qs.filter(game__active=False)
+
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @swagger_auto_schema(
+        operation_summary="Toggle game in wishlist",
+        operation_description="Add or remove a game from the user's wishlist using game_id.",
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['game_id'],
+            properties={
+                'game_id': openapi.Schema(
+                    type=openapi.TYPE_INTEGER,
+                    description='ID of the game to toggle',
+                )
+            },
+        ),
+        responses={
+            200: openapi.Response(
+                description="Status response",
+                examples={"application/json": {"status": "added", "game_id": 1}},
+            ),
+            400: "Bad Request. Missing or invalid game_id.",
+        },
+    )
+    @action(detail=False, methods=['post'], url_path='toggle')
+    def toggle(self, request):
+        game_id = request.data.get('game_id')
+        if not game_id:
+            return Response(
+                {'error': 'game_id is required'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        wishlist_entry = Wishlist.objects.filter(
+            user=request.user, game_id=game_id
+        ).first()
+        if wishlist_entry:
+            wishlist_entry.delete()
+            return Response(
+                {'status': 'removed', 'game_id': int(game_id)},
+                status=status.HTTP_200_OK,
+            )
+        else:
+            Wishlist.objects.create(user=request.user, game_id=game_id)
+            return Response(
+                {'status': 'added', 'game_id': int(game_id)},
+                status=status.HTTP_200_OK,
+            )

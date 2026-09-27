@@ -18,13 +18,13 @@ class Studio(models.Model):
 
 class Game(models.Model):
     title = models.CharField(max_length=255)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name='games')
     studio = models.ForeignKey(Studio, on_delete=models.SET_NULL, null=True, blank=True, related_name='games')
     developer = models.CharField(max_length=255, blank=True, help_text="Example: Rockstar, Ubisoft, Mojang")
     price = models.DecimalField(max_digits=10, decimal_places=2)
     discount = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
-    platforms = models.TextField(help_text="Example: PC, PS5, Xbox Series X")
+    platforms = models.TextField(blank=True, help_text="Example: PC, PS5, Xbox Series X")
     system_requirements = models.JSONField(
         default=dict,
         blank=True,
@@ -72,3 +72,15 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review by {self.user} for {self.game.title}"
+
+class Wishlist(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='wishlist_items', on_delete=models.CASCADE)
+    game = models.ForeignKey(Game, related_name='wishlisted_by', on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'game')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user} -> {self.game.title}"

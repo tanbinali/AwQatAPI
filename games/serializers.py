@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Studio, Game, GameImage, Review
+from .models import Category, Studio, Game, GameImage, Review, Wishlist
 from drf_yasg import openapi
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -130,3 +130,18 @@ class GameSerializer(serializers.ModelSerializer):
             GameImage.objects.create(game=instance, image=image)
                 
         return instance
+
+
+class WishlistSerializer(serializers.ModelSerializer):
+    game_details = GameSerializer(source='game', read_only=True)
+
+    class Meta:
+        model = Wishlist
+        fields = ['id', 'game', 'game_details', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+    def create(self, validated_data):
+        user = self.context['request'].user
+        game = validated_data['game']
+        wishlist_item, _ = Wishlist.objects.get_or_create(user=user, game=game)
+        return wishlist_item
